@@ -2,7 +2,7 @@
   "name": "checklist-api",
   "type": "module",
   "version": "1.0.0",
-  "main": "dist/app.js",
+  "main": "dist/server.js",
   "scripts": {
     "start": "node ./dist/server.js",
     "dev": "tsx watch src/server.ts",
