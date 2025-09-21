@@ -6,6 +6,10 @@ import helmet from 'helmet';
 
 import config from '@/config';
 import limiter from '@/lib/express_rate_limit';
+import { connectToDatabase, disconnectFromDatabase } from './lib/mongoose';
+import { logger } from '@/lib/winston';
+
+import v1Routes from '@/routes/v1';
 
 import type { CorsOptions } from 'cors';
 
@@ -18,7 +22,6 @@ const corsOptions: CorsOptions = {
       !origin ||
       config.WHITELIST_ORIGINS.includes(origin)
     ) {
-      console.log(`origin ${origin?.toString()}`);
       callback(null, true);
     } else {
       // reject requests for non-whitelisted requests
@@ -26,6 +29,7 @@ const corsOptions: CorsOptions = {
         new Error(`CORS Error: ${origin} is not allowed by CORS.`),
         false,
       );
+      logger.warn(`CORS Error: ${origin} is not allowed by CORS.`);
     }
   },
 };
@@ -53,15 +57,15 @@ app.use(limiter);
 
 (async () => {
   try {
-    app.get('/', (req, res) => {
-      res.json({ message: 'Hello World!' });
-    });
+    await connectToDatabase();
+
+    app.use('/api/v1', v1Routes);
 
     app.listen(config.PORT, () => {
-      console.log(`Server running: http://localhost:${config.PORT}`);
+      logger.info(`Server running: http://localhost:${config.PORT}`);
     });
   } catch (err) {
-    console.log('Failed to start the server.', err);
+    logger.error('Failed to start the server.', err);
 
     if (config.ENV === 'prod') {
       process.exit(1);
@@ -70,3 +74,17 @@ app.use(limiter);
 })();
 
 export default app;
+
+const handleServerShutDown = async () => {
+  try {
+    await disconnectFromDatabase();
+
+    logger.warn('Server SHUTDOWN');
+    process.exit(0);
+  } catch (err) {
+    logger.error('Error during server shutdown', err);
+  }
+};
+
+process.on('SIGTERM', handleServerShutDown);
+process.on('SIGINT', handleServerShutDown);
