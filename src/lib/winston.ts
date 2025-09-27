@@ -15,11 +15,10 @@ if (config.ENV !== 'prod') {
         timestamp({ format: 'YYYY-MM-DD hh:mm:ss A' }),
         align(),
         printf(({ timestamp, level, message, ...metadata }) => {
-          let msg = `${timestamp} [${level}] : ${message} `;
-          if (metadata) {
-            msg += JSON.stringify(metadata);
-          }
-          return msg;
+          const metaStr = Object.keys(metadata).length
+            ? `\n${JSON.stringify(metadata)}`
+            : '';
+          return `[${timestamp}] [${level}]: ${message} ${metaStr}`;
         }),
       ),
     }),
